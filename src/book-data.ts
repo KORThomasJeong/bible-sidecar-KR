@@ -115,6 +115,20 @@ const EN_ABBR: Record<number, string[]> = {
 	66: ["rev"],
 };
 
+// Primary abbreviation for a bookid in the given language (for copy references).
+export function getAbbreviation(bookid: number, lang: "ko" | "en"): string {
+	const table = lang === "ko" ? KO_ABBR : EN_ABBR;
+	const abbr = table[bookid]?.[0];
+	if (abbr) return lang === "ko" ? abbr : capitalize(abbr);
+	const meta = BOOKS[bookid - 1];
+	return meta ? (lang === "ko" ? meta.ko : meta.en) : String(bookid);
+}
+
+function capitalize(s: string): string {
+	// Uppercase the first letter, even when preceded by a number (1cor -> 1Cor).
+	return s.replace(/^(\d*)([a-z])/, (_m, d: string, c: string) => d + c.toUpperCase());
+}
+
 export function buildAliasIndex(): Map<string, number> {
 	const idx = new Map<string, number>();
 	const add = (alias: string, bookid: number) => {

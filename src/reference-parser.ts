@@ -34,6 +34,25 @@ export function parseReference(query: string): ParsedRef | null {
 	return ref;
 }
 
+// "27-28,30" — consecutive verses collapse to ranges, gaps split on commas.
+export function compactVerseRef(verses: number[]): string {
+	const s = [...verses].sort((a, b) => a - b);
+	if (s.length === 0) return "";
+	const parts: string[] = [];
+	let start = s[0];
+	let prev = s[0];
+	for (let k = 1; k < s.length; k++) {
+		if (s[k] === prev + 1) {
+			prev = s[k];
+			continue;
+		}
+		parts.push(start === prev ? `${start}` : `${start}-${prev}`);
+		start = prev = s[k];
+	}
+	parts.push(start === prev ? `${start}` : `${start}-${prev}`);
+	return parts.join(",");
+}
+
 export function suggestBooks(query: string, limit = 8): BookMeta[] {
 	const q = query.trim();
 	if (!q) return [];

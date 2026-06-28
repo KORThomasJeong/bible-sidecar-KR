@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { BOOKS, buildAliasIndex, normalizeToken } from "../src/book-data";
-import { parseReference, suggestBooks } from "../src/reference-parser";
+import { BOOKS, buildAliasIndex, normalizeToken, getAbbreviation } from "../src/book-data";
+import { parseReference, suggestBooks, compactVerseRef } from "../src/reference-parser";
 import { normalizeLocalChapter } from "../src/bible-source";
 
 describe("BOOKS table", () => {
@@ -78,6 +78,40 @@ describe("suggestBooks", () => {
 	});
 	it("returns empty for empty query", () => {
 		expect(suggestBooks("")).toEqual([]);
+	});
+});
+
+describe("compactVerseRef", () => {
+	it("single verse", () => {
+		expect(compactVerseRef([5])).toBe("5");
+	});
+	it("consecutive collapse to a range", () => {
+		expect(compactVerseRef([27, 28])).toBe("27-28");
+		expect(compactVerseRef([1, 2, 3, 4])).toBe("1-4");
+	});
+	it("gaps split on commas", () => {
+		expect(compactVerseRef([27, 28, 30])).toBe("27-28,30");
+		expect(compactVerseRef([1, 3, 5])).toBe("1,3,5");
+	});
+	it("sorts unordered input", () => {
+		expect(compactVerseRef([30, 27, 28])).toBe("27-28,30");
+	});
+	it("empty -> empty string", () => {
+		expect(compactVerseRef([])).toBe("");
+	});
+});
+
+describe("getAbbreviation", () => {
+	it("Korean abbreviations", () => {
+		expect(getAbbreviation(41, "ko")).toBe("막"); // Mark
+		expect(getAbbreviation(58, "ko")).toBe("히"); // Hebrews
+		expect(getAbbreviation(62, "ko")).toBe("요일"); // 1 John
+	});
+	it("English abbreviations are capitalized", () => {
+		expect(getAbbreviation(41, "en")).toBe("Mark");
+		expect(getAbbreviation(58, "en")).toBe("Heb");
+		expect(getAbbreviation(46, "en")).toBe("1Cor");
+		expect(getAbbreviation(19, "en")).toBe("Ps");
 	});
 });
 

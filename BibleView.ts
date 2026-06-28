@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
-import { BibleSource, ChapterVerse, BookListItem } from "./src/bible-source";
-import { parseReference, suggestBooks } from "./src/reference-parser";
-import { BOOKS } from "./src/book-data";
+import { BibleSource, NKRV_VERSION, ChapterVerse, BookListItem } from "./src/bible-source";
+import { parseReference, suggestBooks, compactVerseRef } from "./src/reference-parser";
+import { BOOKS, getAbbreviation } from "./src/book-data";
 
 export const BibleViewType = "bible-view";
 
@@ -33,8 +33,20 @@ export class BibleView extends ItemView {
 	previousButton: HTMLElement;
 	nextButton: HTMLElement;
 
+	// Selection state for the currently displayed chapter.
+	private selected = new Map<number, string>(); // verse number -> verse text
+	private selectionToolbar: HTMLElement | null = null;
+	private selectionCountEl: HTMLElement | null = null;
+
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
+	}
+
+	private clearSelection() {
+		this.selected.clear();
+		const active = this.containerEl.querySelectorAll(".verse.active-verse");
+		active.forEach((el) => el.removeClass("active-verse"));
+		this.updateSelectionToolbar();
 	}
 
 	getViewType() {
@@ -84,17 +96,6 @@ export class BibleView extends ItemView {
 			(digit) => superscriptMap[digit as keyof typeof superscriptMap]
 		);
 		return superscriptedDigits.join("");
-	}
-
-	convertToNumber(superscriptNumber: string): number {
-		const superscriptMap = {
-			"⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
-			"⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
-		};
-		const digits = superscriptNumber
-			.split("")
-			.map((digit) => superscriptMap[digit as keyof typeof superscriptMap]);
-		return parseInt(digits.join(""), 10);
 	}
 
 	renderBooks(books: BookListItem[]) {
@@ -307,104 +308,83 @@ export class BibleView extends ItemView {
 			}
 		});
 
-		const chapterContent = chapterContainer.createEl("div", { cls: "chapter-content" });
-		chapterContent.empty();
+		// New chapter view → reset selection.
+		this.selected.clear();
 
-		let accumulatedVerseText = "";
+		const chapterContent = chapterContainer.createEl("div", { cls: "chapter-content" });
 
 		function filterVerse(verse: string): string {
 			return verse.replace(/<br\s*\/?>|<\/?i>|<\/?b>/gi, "\n");
 		}
 
 		for (const verse of chapter) {
-			const formattedVerseNumber = this.convertToSuperscript(String(verse.verse));
 			const filteredVerseText = filterVerse(verse.text);
-
 			const formattedVerse = chapterContent.createEl("span", { cls: "verse" });
-			formattedVerse.appendText(`${formattedVerseNumber} ${filteredVerseText}`);
+			formattedVerse.appendText(
+				`${this.convertToSuperscript(String(verse.verse))} ${filteredVerseText}`
+			);
 
 			formattedVerse.addEventListener("click", () => {
-				formattedVerse.classList.toggle("active-verse");
-				const verseIdentifier = `${formattedVerseNumber} ${verse.text}`;
-				if (formattedVerse.classList.contains("active-verse")) {
-					accumulatedVerseText += verseIdentifier + " ";
+				if (this.selected.has(verse.verse)) {
+					this.selected.delete(verse.verse);
+					formattedVerse.removeClass("active-verse");
 				} else {
-					accumulatedVerseText = accumulatedVerseText.replace(verseIdentifier + " ", "");
+					this.selected.set(verse.verse, filteredVerseText);
+					formattedVerse.addClass("active-verse");
 				}
-				this.renderCopyMessage(book, i, accumulatedVerseText);
+				this.updateSelectionToolbar();
 			});
 		}
+
+		// Selection toolbar (sticky bottom action bar), shown when >=1 verse selected.
+		const toolbar = chapterContainer.createDiv({ cls: "selection-toolbar" });
+		toolbar.hide();
+		this.selectionToolbar = toolbar;
+		const copyBtn = toolbar.createEl("button", { text: "복사", cls: "copy-button" });
+		const clearBtn = toolbar.createEl("button", { cls: "clear-button" });
+		this.selectionCountEl = clearBtn;
+		copyBtn.addEventListener("click", () => {
+			const text = this.buildCopyText(book, i);
+			if (!text) return;
+			void navigator.clipboard.writeText(text);
+			new Notice(`${this.selected.size}개 절 복사됨`);
+		});
+		clearBtn.addEventListener("click", () => this.clearSelection());
+		this.updateSelectionToolbar();
 	}
 
-	renderCopyMessage(
-		book: BookListItem,
-		chapter: number,
-		accumulatedVerseText: string
-	) {
-		const regex = /[⁰¹²³⁴-⁹]+/g;
-		const verses = accumulatedVerseText
-			.split("\n")
-			.flatMap((verse) => {
-				const matches = Array.from(verse.matchAll(regex));
-				if (matches.length === 0) {
-					return [{ verse: 0, text: verse.trim() }];
-				}
-				return matches.map((match) => {
-					const verseNumber = this.convertToNumber(match[0]);
-					const verseStart = (match?.index ?? 0) + (match?.[0]?.length ?? 0);
-					const verseEnd =
-						matches.indexOf(match) === matches.length - 1
-							? verse.length
-							: Array.from(verse.matchAll(regex))[matches.indexOf(match) + 1].index;
-					const verseText = verse.substring(verseStart, verseEnd).trim();
-					return { verse: verseNumber, text: verseText };
-				});
-			})
-			.sort((a, b) => (a?.verse ?? 0) - (b?.verse ?? 0));
+	private updateSelectionToolbar() {
+		if (!this.selectionToolbar) return;
+		const n = this.selected.size;
+		this.selectionCountEl?.setText(`선택 해제 (${n})`);
+		if (n > 0) this.selectionToolbar.show();
+		else this.selectionToolbar.hide();
+	}
 
-		for (const verse of verses) {
-			let verseRangeStart = 0;
-			let verseRangeEnd = 0;
-			let sortedText = "";
-			const internalLinkStart =
-				this.settings.verseReferenceInternalLinking === true
-					? `[[${book.name}]]`
-					: `${book.name}`;
+	private buildCopyText(book: BookListItem, chapter: number): string {
+		const nums = [...this.selected.keys()].sort((a, b) => a - b);
+		if (nums.length === 0) return "";
+		const ref = compactVerseRef(nums);
+		const line = (v: number) =>
+			`${v} ${(this.selected.get(v) ?? "").replace(/\s*\n+\s*/g, " ").trim()}`;
 
-			verses.forEach((verse, index) => {
-				if (verseRangeStart === 0) {
-					verseRangeStart = verse.verse;
-				}
-				if (index > 0 && verses[index - 1].verse !== verse.verse - 1) {
-					verseRangeEnd = verses[index - 1].verse;
-					if (this.settings.copyVerseReference) {
-						sortedText += ` \n${this.settings.copyFormat === "callout" ? "> " : ""}${this.settings.verseReferenceStyle} ${internalLinkStart} ${chapter}:${
-							verseRangeStart === verseRangeEnd
-								? verseRangeStart
-								: verseRangeStart + "-" + verseRangeEnd
-						}  \n\n`;
-					}
-					verseRangeStart = verse.verse;
-				}
-
-				sortedText += `${this.settings.copyFormat === "callout" ? "> " : ""}${this.convertToSuperscript(
-					verse.verse.toString()
-				)} ${verse.text}`;
-
-				if (index === verses.length - 1) {
-					verseRangeEnd = verse.verse;
-					if (this.settings.copyVerseReference) {
-						sortedText += ` \n${this.settings.copyFormat === "callout" ? "> " : ""}${this.settings.verseReferenceStyle} ${internalLinkStart} ${chapter}:${
-							verseRangeStart === verseRangeEnd
-								? verseRangeStart
-								: verseRangeStart + "-" + verseRangeEnd
-						} `;
-					}
-				}
-			});
-
-			void navigator.clipboard.writeText(sortedText.trim());
-			new Notice(`${book.name} ${chapter}:${verse.verse} 복사됨`);
+		if (this.settings.copyFormat === "callout") {
+			const isKo =
+				this.settings.bibleVersion === "KRV" ||
+				this.settings.bibleVersion === NKRV_VERSION;
+			const abbr = getAbbreviation(book.bookid, isKo ? "ko" : "en");
+			const body = nums.map((v) => `> ${line(v)}`).join("\n");
+			return `>[!${abbr}${chapter}:${ref}]\n${body}`;
 		}
+
+		const body = nums.map(line).join("\n");
+		if (this.settings.copyVerseReference) {
+			const name = this.settings.verseReferenceInternalLinking
+				? `[[${book.name}]]`
+				: book.name;
+			const refLine = `${this.settings.verseReferenceStyle.trim()} ${name} ${chapter}:${ref}`;
+			return `${refLine}\n${body}`;
+		}
+		return body;
 	}
 }

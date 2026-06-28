@@ -23,12 +23,23 @@ If your plugin does not need CSS, delete this file.
 [data-type="bible-view"] .chapter-container p {
 	text-align: justify;
 }
-[data-type="bible-view"] .chapter-container span:hover {
-	cursor: auto;
-	text-decoration: underline;
+[data-type="bible-view"] .chapter-content {
+	width: 100%;
 }
-[data-type="bible-view"] .active-verse {
-	text-decoration: dotted underline;
+[data-type="bible-view"] .verse {
+	display: block;
+	margin: 3px 0;
+	padding: 2px 4px;
+	border-radius: 4px;
+	cursor: pointer;
+	line-height: 1.6;
+}
+[data-type="bible-view"] .verse:hover {
+	background: var(--background-modifier-hover);
+}
+[data-type="bible-view"] .active-verse,
+[data-type="bible-view"] .verse.active-verse:hover {
+	background: var(--text-selection);
 }
 [data-type="bible-view"] .bible-wrapper {
 	height: 100%;
@@ -71,4 +82,17 @@ If your plugin does not need CSS, delete this file.
 [data-type="bible-view"] .verse-highlight {
 	background: var(--text-highlight-bg);
 	transition: background 0.4s ease;
+}
+[data-type="bible-view"] .selection-toolbar {
+	position: sticky;
+	bottom: 0;
+	z-index: 3;
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	width: 100%;
+	padding: 8px;
+	margin-top: 8px;
+	background: var(--background-primary);
+	border-top: 1px solid var(--background-modifier-border);
 }
