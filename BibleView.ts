@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Notice, Platform } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
 import { BibleSource, ChapterVerse, BookListItem } from "./src/bible-source";
 import { parseReference, suggestBooks } from "./src/reference-parser";
 import { BOOKS } from "./src/book-data";
@@ -42,7 +42,7 @@ export class BibleView extends ItemView {
 	}
 
 	getDisplayText() {
-		return "Bible Sidecar KR";
+		return "성경 사이드바";
 	}
 
 	getIcon() {
@@ -58,11 +58,11 @@ export class BibleView extends ItemView {
 	public updateSettings(newSettings: BibleSidecarSettings): void {
 		this.settings = newSettings;
 		this.source?.clearNkrvCache();
-		this.loadBible();
+		void this.loadBible();
 	}
 
 	async onOpen() {
-		this.loadBible();
+		await this.loadBible();
 	}
 
 	async loadBible() {
@@ -81,7 +81,7 @@ export class BibleView extends ItemView {
 		};
 		const digits = String(number).split("");
 		const superscriptedDigits = digits.map(
-			(digit: keyof typeof superscriptMap) => superscriptMap[digit]
+			(digit) => superscriptMap[digit as keyof typeof superscriptMap]
 		);
 		return superscriptedDigits.join("");
 	}
@@ -138,7 +138,7 @@ export class BibleView extends ItemView {
 				return;
 			}
 			list.empty();
-			this.openChapter(ref.bookid, ref.chapter, ref.verse, books);
+			void this.openChapter(ref.bookid, ref.chapter, ref.verse, books);
 		};
 
 		input.addEventListener("input", () => {
@@ -156,7 +156,7 @@ export class BibleView extends ItemView {
 				item.addEventListener("click", () => {
 					input.value = "";
 					list.empty();
-					this.openChapter(b.bookid, Math.min(chapter, b.chapters), verse, books);
+					void this.openChapter(b.bookid, Math.min(chapter, b.chapters), verse, books);
 				});
 			}
 		});
@@ -182,10 +182,10 @@ export class BibleView extends ItemView {
 				name: meta?.ko ?? String(bookid),
 				chapters: meta?.chapters ?? 1,
 			};
-		const wrapper = this.containerEl.querySelector(".bible-wrapper") as HTMLElement | null;
+		const wrapper = this.containerEl.querySelector<HTMLElement>(".bible-wrapper");
 		const chapterContainer =
-			(wrapper?.querySelector(".chapter-container") as HTMLElement | null) ??
-			(this.containerEl.querySelector(".chapter-container") as HTMLElement | null);
+			wrapper?.querySelector<HTMLElement>(".chapter-container") ??
+			this.containerEl.querySelector<HTMLElement>(".chapter-container");
 		if (!chapterContainer) return;
 		try {
 			const verses = await this.source.getChapter(this.settings.bibleVersion, bookid, chapter);
@@ -198,7 +198,7 @@ export class BibleView extends ItemView {
 	}
 
 	scrollToVerse(container: HTMLElement, verse: number) {
-		const spans = Array.from(container.querySelectorAll(".verse")) as HTMLElement[];
+		const spans = Array.from(container.querySelectorAll<HTMLElement>(".verse"));
 		const target = spans[verse - 1];
 		if (!target) return;
 		target.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -221,7 +221,7 @@ export class BibleView extends ItemView {
 			cls: "back-button",
 		});
 		this.backButton.addEventListener("click", () => {
-			this.onOpen();
+			void this.onOpen();
 		});
 
 		for (let i = 1; i <= book.chapters; i++) {
@@ -278,7 +278,7 @@ export class BibleView extends ItemView {
 			cls: "back-button",
 		});
 		this.backButton.addEventListener("click", () => {
-			this.onOpen();
+			void this.onOpen();
 		});
 
 		this.nextButton = controlsContainer.createEl("button", {
@@ -321,9 +321,7 @@ export class BibleView extends ItemView {
 			const filteredVerseText = filterVerse(verse.text);
 
 			const formattedVerse = chapterContent.createEl("span", { cls: "verse" });
-			formattedVerse.appendChild(
-				document.createTextNode(`${formattedVerseNumber} ${filteredVerseText}`)
-			);
+			formattedVerse.appendText(`${formattedVerseNumber} ${filteredVerseText}`);
 
 			formattedVerse.addEventListener("click", () => {
 				formattedVerse.classList.toggle("active-verse");
@@ -335,8 +333,6 @@ export class BibleView extends ItemView {
 				}
 				this.renderCopyMessage(book, i, accumulatedVerseText);
 			});
-
-			chapterContent.appendChild(formattedVerse);
 		}
 	}
 
@@ -407,7 +403,7 @@ export class BibleView extends ItemView {
 				}
 			});
 
-			navigator.clipboard.writeText(sortedText.trim());
+			void navigator.clipboard.writeText(sortedText.trim());
 			new Notice(`${book.name} ${chapter}:${verse.verse} 복사됨`);
 		}
 	}

@@ -83,7 +83,7 @@ export class BibleSource {
 		const exists = await this.app.vault.adapter.exists(path);
 		if (!exists) throw new Error(`개역개정 파일을 찾을 수 없습니다: ${path}`);
 		const text = await this.app.vault.adapter.read(path);
-		const data = JSON.parse(text);
+		const data: unknown = JSON.parse(text);
 		this.nkrvCache = { path, data };
 		return data;
 	}

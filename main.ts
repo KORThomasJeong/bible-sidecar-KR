@@ -2,7 +2,7 @@ import {
 	Plugin,
 	WorkspaceLeaf,
 } from "obsidian";
-import { BibleView, BibleViewType } from "BibleView";
+import { BibleView, BibleViewType } from "./BibleView";
 import { BibleSidecarSettingsTab } from "./settings";
 
 interface BibleSidecarSettings {
@@ -50,7 +50,7 @@ export default class BibleSidecarPlugin extends Plugin {
 			"book-open-text",
 			"성경 사이드바",
 			(evt: MouseEvent) => {
-				this.toggleBibleSidecarView();
+				void this.toggleBibleSidecarView();
 			}
 		);
 
@@ -67,7 +67,7 @@ export default class BibleSidecarPlugin extends Plugin {
 	private readonly toggleBibleSidecarView = async (): Promise<void> => {
 		const existing = this.app.workspace.getLeavesOfType(BibleViewType);
 		if (existing.length) {
-			this.app.workspace.revealLeaf(existing[0]);
+			void this.app.workspace.revealLeaf(existing[0]);
 			return;
 		}
 
@@ -79,7 +79,7 @@ export default class BibleSidecarPlugin extends Plugin {
 			});
 		}
 
-		this.app.workspace.revealLeaf(
+		void this.app.workspace.revealLeaf(
 			this.app.workspace.getLeavesOfType(BibleViewType)[0]
 		);
 	};
@@ -97,8 +97,8 @@ export default class BibleSidecarPlugin extends Plugin {
 	};
 
 	async loadSettings() {
-		const data = await this.loadData();
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+		const data = (await this.loadData()) as Partial<BibleSidecarSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data) as BibleSidecarSettings;
 	}
 
 	async saveSettings() {

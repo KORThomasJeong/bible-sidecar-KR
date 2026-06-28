@@ -1,4 +1,4 @@
-import BibleSidecarPlugin from "main";
+import BibleSidecarPlugin from "./main";
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { NKRV_VERSION } from "./src/bible-source";
 
@@ -20,13 +20,13 @@ export class BibleSidecarSettingsTab extends PluginSettingTab {
 			.addDropdown((dropdown) => {
 				dropdown.addOption("KRV", "개역한글");
 				dropdown.addOption(NKRV_VERSION, "개역개정 (로컬 파일)");
-				dropdown.addOption("NIV", "NIV (New International Version, 1984)");
-				dropdown.addOption("KJV", "KJV (King James Version)");
+				dropdown.addOption("NIV", "NIV");
+				dropdown.addOption("KJV", "KJV");
 				dropdown
 					.setValue(this.plugin.settings.bibleVersion)
 					.onChange((value: string) => {
 						this.plugin.settings.bibleVersion = value;
-						this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 						this.display();
 					});
 			});
@@ -42,7 +42,7 @@ export class BibleSidecarSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.nkrvPath)
 					.onChange((value: string) => {
 						this.plugin.settings.nkrvPath = value;
-						this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 					});
 			});
 
@@ -52,12 +52,12 @@ export class BibleSidecarSettingsTab extends PluginSettingTab {
 			.setDesc("성경 본문을 복사할 때의 형식을 선택하세요")
 			.addDropdown((dropdown) => {
 				dropdown.addOption("plain", "일반 텍스트");
-				dropdown.addOption("callout", "콜아웃 (Callout)");
+				dropdown.addOption("callout", "콜아웃");
 				dropdown
 					.setValue(this.plugin.settings.copyFormat)
 					.onChange((value: string) => {
 						this.plugin.settings.copyFormat = value;
-						this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 					});
 			});
 
@@ -70,7 +70,7 @@ export class BibleSidecarSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.copyVerseReference)
 					.onChange((value: boolean) => {
 						this.plugin.settings.copyVerseReference = value;
-						this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 						this.display();
 					});
 			});
@@ -88,7 +88,7 @@ export class BibleSidecarSettingsTab extends PluginSettingTab {
 						.setValue(this.plugin.settings.verseReferenceStyle)
 						.onChange((value: string) => {
 							this.plugin.settings.verseReferenceStyle = value;
-							this.plugin.saveSettings();
+							void this.plugin.saveSettings();
 						});
 				});
 
@@ -100,7 +100,7 @@ export class BibleSidecarSettingsTab extends PluginSettingTab {
 						.setValue(this.plugin.settings.verseReferenceInternalLinking)
 						.onChange((value: boolean) => {
 							this.plugin.settings.verseReferenceInternalLinking = value;
-							this.plugin.saveSettings();
+							void this.plugin.saveSettings();
 						});
 				});
 		}
