@@ -20,3 +20,7 @@ data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+
+# 개역개정 (NKRV) local Bible text — never commit (copyright)
+*.nkrv.json
+nkrv.json
