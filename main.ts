@@ -7,37 +7,24 @@ import { BibleSidecarSettingsTab } from "./settings";
 
 interface BibleSidecarSettings {
 	bibleVersion: string;
+	nkrvPath: string;
 	copyFormat: string;
 	copyVerseReference: boolean;
 	verseReferenceStyle: string;
 	verseReferenceFormat: string;
 	verseReferenceInternalLinking: boolean;
 	verseReferenceInternalLinkingFormat: string;
-	bibleLanguage: string;
 }
 
 const DEFAULT_SETTINGS: Partial<BibleSidecarSettings> = {
-	bibleVersion: "NLT",
+	bibleVersion: "KRV",
+	nkrvPath: "",
 	copyFormat: "plain",
 	copyVerseReference: false,
 	verseReferenceStyle: "- ",
 	verseReferenceFormat: "full",
 	verseReferenceInternalLinking: false,
 	verseReferenceInternalLinkingFormat: "short",
-	bibleLanguage: "en",
-};
-
-const LANGUAGE_DEFAULT_VERSIONS: Record<string, string> = {
-	en: "NLT",
-	de: "ELB",
-	fr: "NBS",
-	es: "BTX3",
-	pt: "ARA",
-	it: "NR06",
-	nl: "NLD",
-	ru: "SYNOD",
-	ar: "SVD",
-	in: "TB",
 };
 
 export default class BibleSidecarPlugin extends Plugin {
@@ -61,7 +48,7 @@ export default class BibleSidecarPlugin extends Plugin {
 
 		this.addRibbonIcon(
 			"book-open-text",
-			"Bible Sidecar",
+			"성경 사이드바",
 			(evt: MouseEvent) => {
 				this.toggleBibleSidecarView();
 			}
@@ -69,7 +56,7 @@ export default class BibleSidecarPlugin extends Plugin {
 
 		this.addCommand({
 			id: "open-bible-sidecar",
-			name: "Open Bible Sidecar",
+			name: "성경 사이드바 열기",
 			callback: this.toggleBibleSidecarView,
 			icon: "book-open-text",
 		});
@@ -99,7 +86,6 @@ export default class BibleSidecarPlugin extends Plugin {
 
 	initLeaf(): void {
 		if (this.app.workspace.getLeavesOfType(BibleViewType).length) {
-			console.log("Bible view already open");
 			return;
 		}
 	}
@@ -111,25 +97,12 @@ export default class BibleSidecarPlugin extends Plugin {
 	};
 
 	async loadSettings() {
-		await this.loadData().then((data) => {
-			this.settings = Object.assign(
-				{},
-				DEFAULT_SETTINGS,
-				data,
-				{
-					bibleVersion:
-						data?.bibleLanguage &&
-						LANGUAGE_DEFAULT_VERSIONS[data.bibleLanguage]
-							? LANGUAGE_DEFAULT_VERSIONS[data.bibleLanguage]
-							: LANGUAGE_DEFAULT_VERSIONS["en"], // Default to "en" if not found
-				}
-			);
-		});
+		const data = await this.loadData();
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		console.log("Saved settings", this.settings);
 		this.updateBibleViewSettings(this.settings);
 	}
 }

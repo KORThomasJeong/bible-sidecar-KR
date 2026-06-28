@@ -44,3 +44,31 @@ If your plugin does not need CSS, delete this file.
 	align-items: center;
 	width: 100%;
 }
+[data-type="bible-view"] .bible-search {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	background: var(--background-primary);
+	padding: 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+[data-type="bible-view"] .bible-search-input {
+	width: 100%;
+	box-sizing: border-box;
+}
+[data-type="bible-view"] .bible-search-suggestions {
+	display: flex;
+	flex-direction: column;
+}
+[data-type="bible-view"] .bible-search-suggestion {
+	padding: 4px 6px;
+	cursor: pointer;
+	border-radius: 4px;
+}
+[data-type="bible-view"] .bible-search-suggestion:hover {
+	background: var(--background-modifier-hover);
+}
+[data-type="bible-view"] .verse-highlight {
+	background: var(--text-highlight-bg);
+	transition: background 0.4s ease;
+}
